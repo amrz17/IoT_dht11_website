@@ -1,8 +1,8 @@
 import express from "express";
-import { PrismaClient } from '@prisma/client';
-import jakartaTime from './datetime.js';
+import { PrismaClient } from "@prisma/client";
+import jakartaTime from "./datetime.js";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 const app = express();
 const port = 3000;
 
@@ -14,12 +14,14 @@ app.get("/", (req, res) => {
 
 // Endpoint untuk menambahkan pengguna
 app.post("/data-sensor", async (req, res) => {
-  const { temperature, humidity, createdAt=jakartaTime } = req.body;
-  try {  
+  const { temperature, humidity, createdAt = jakartaTime } = req.body;
+  try {
     const datas = await prisma.tbl_data_sensor.create({
       data: { temperature, humidity, createdAt },
     });
-    console.log(`Temperature : ${temperature} \nHumidity : ${humidity}\n--------------------`)
+    console.log(
+      `Temperature : ${temperature} \nHumidity : ${humidity}\n--------------------`,
+    );
     res.json(datas);
   } catch (error) {
     console.error("Error creating user:", error);
