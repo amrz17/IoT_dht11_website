@@ -1,61 +1,70 @@
 import { useState, useEffect } from "react";
-import { LineChart, Line, XAxis, Tooltip, CartesianGrid } from "recharts";
-import axios from "axios";
 
-const RealTimeChart = () => {
-  const [data, setData] = useState([
-    { name: "T1", uv: 4000, pv: 2400 },
-    { name: "T2", uv: 3000, pv: 1398 },
-    { name: "T3", uv: 2000, pv: 9800 },
-    { name: "T4", uv: 1000, pv: 2400 },
-    { name: "T5", uv: 3000, pv: 1398 },
-    { name: "T6", uv: 2000, pv: 9800 },
-  ]);
+const LatestSensorData = () => {
+  const [sensorData, setSensorData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setData((prevData) => {
-        // Geser data ke belakang
-        const shiftedData = prevData.map((item, index) => {
-          // Update nilai berdasarkan posisi
-          if (index === prevData.length - 1) {
-            // Elemen terakhir dihapus atau diberi nilai default
-            return { ...item, uv: 0, pv: 0 };
-          }
-          return { ...prevData[index + 1] }; // Geser elemen berikutnya
-        });
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/data-sensor/latest",
+          {
+            headers: {
+              "Cache-Control": "no-cache",
+            },
+          },
+        );
+        const data = await response.json();
+        console.log("Fetched Data:", data); // Log data setiap kali di-fetch
+        setSensorData(data); // Update state
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching latest sensor data:", error);
+        setLoading(false);
+      }
+    };
 
-        // Masukkan data baru ke elemen pertama
-        shiftedData[0] = {
-          name: `T${Math.floor(Math.random() * 100)}`,
-          uv: Math.floor(Math.random() * 1000),
-          pv: Math.floor(Math.random() * 1000),
-        };
+    fetchData(); // Fetch awal
+    const intervalId = setInterval(fetchData, 2000); // Fetch setiap 2 detik
 
-        return shiftedData;
-      });
-    }, 2000); // Update setiap 2 detik
-
-    return () => clearInterval(interval); // Cleanup interval saat komponen di-unmount
+    return () => clearInterval(intervalId); // Cleanup interval saat komponen unmount
   }, []);
 
+  if (loading) {
+    return <div className="text-center p-4">Loading...</div>;
+  }
+
+  if (!sensorData) {
+    return <div className="text-center p-4">Tidak ada data sensor</div>;
+  }
+
   return (
-    <div className="flex flex-col justify-center items-center h-screen">
-      <h1>DATA SUHU RUANGAN</h1>
-      <LineChart
-        width={860}
-        height={460}
-        data={data}
-        margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-      >
-        <XAxis dataKey="name" />
-        <Tooltip />
-        <CartesianGrid stroke="#f5f5f5" />
-        <Line type="monotone" dataKey="uv" stroke="#ff7300" yAxisId={0} />
-        <Line type="monotone" dataKey="pv" stroke="#387908" yAxisId={1} />
-      </LineChart>
+    <div className="max-w-md mx-auto p-4 border rounded-lg shadow-sm">
+      <h1 className="text-xl font-semibold mb-4">Data Sensor DHT11</h1>
+
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span>Suhu:</span>
+          <span className="font-medium">{sensorData.temperature}°C</span>
+        </div>
+
+        <div className="flex justify-between">
+          <span>Kelembaban:</span>
+          <span className="font-medium">{sensorData.humidity}%</span>
+        </div>
+
+        <div className="text-sm text-gray-500 pt-2">
+          Update terakhir: {new Date(sensorData.createdAt).toLocaleString()}
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span>Live Update</span>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default RealTimeChart;
+export default LatestSensorData;
