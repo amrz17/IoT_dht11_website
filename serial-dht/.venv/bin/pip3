@@ -1,4 +1,4 @@
-#!/home/amer/serial-dht/.venv/bin/python3
+#!/home/amrz17/Dev/IoT_dht11_website/serial-dht/.venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
