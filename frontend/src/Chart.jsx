@@ -1,57 +1,141 @@
 import { useState, useEffect } from "react";
-import { LineChart, Line, XAxis, Tooltip, CartesianGrid } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
-const RealTimeChart = () => {
-  const [data, setData] = useState([
-    { name: "T1", temperature: 31, humidity: 20 },
-    { name: "T1", temperature: 32, humidity: 30 },
-    { name: "T1", temperature: 38, humidity: 28 },
-    { name: "T1", temperature: 31, humidity: 20 },
-    { name: "T1", temperature: 34, humidity: 25 },
+const LatestSensorData = () => {
+  const [sensorData, setSensorData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  ]);
   useEffect(() => {
-    const interval = setInterval(() => {
-      setData((prevData) => {
-        // Geser data ke belakang
-        const shiftedData = prevData.map((item, index) => {
-          // Update nilai berdasarkan posisi
-          if (index === prevData.length - 1) {
-            return {
-              ...item,
-              temperature: Math.floor(Math.random() * 10) + 20, // Suhu acak antara 20-29
-              humidity: Math.floor(Math.random() * 30) + 20,    // Kelembapan acak antara 20-49
-            };
-          }
-          return { ...prevData[index + 1] }; // Geser elemen berikutnya
-        });
-        // Masukkan data baru ke elemen pertama
-        shiftedData[length -1] = {
-          name: `T${Math.floor(Math.random())}`,
-          temperature: Math.floor(Math.random() * 4),
-          humidity: Math.floor(Math.random() * 5),
-        };
-        return shiftedData;
-      });
-    }, 2000); // Update setiap 2 detik
-    return () => clearInterval(interval); // Cleanup interval saat komponen di-unmount
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/data-sensor/latest",
+          {
+            headers: {
+              "Cache-Control": "no-cache",
+            },
+          },
+        );
+        const data = await response.json();
+        console.log("Fetched Data:", data); // Log data setiap kali di-fetch
+
+        // Tambahkan data baru ke sensorData
+        setSensorData((prevData) => [
+          ...prevData,
+          {
+            time: new Date().toLocaleTimeString(),
+            temperature: data.temperature,
+            humidity: data.humidity,
+          },
+        ]);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching latest sensor data:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchData(); // Fetch awal
+    const intervalId = setInterval(fetchData, 2000); // Fetch setiap 2 detik
+
+    return () => clearInterval(intervalId); // Cleanup interval saat komponen unmount
   }, []);
+
+  if (loading) {
+    return <div className="text-center p-4">Loading...</div>;
+  }
+
+  if (!sensorData.length) {
+    return <div className="text-center p-4">Tidak ada data sensor</div>;
+  }
+
   return (
-    <div className="flex flex-col justify-center items-center h-screen">
-      <h1>DATA SUHU RUANGAN</h1>
-      <LineChart
-        width={860}
-        height={460}
-        data={data}
-        margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-      >
-        <XAxis dataKey="name" />
-        <Tooltip />
-        <CartesianGrid stroke="#f5f5f5" />
-        <Line type="monotone" dataKey="temperature" stroke="#ff7300" yAxisId={0} />
-        <Line type="monotone" dataKey="humidity" stroke="#387908" yAxisId={1} />
-      </LineChart>
+    <div className="p-3 lg:p-8 border rounded-lg shadow-sm">
+      <div>
+        <h1 className="text-xl font-semibold mb-4">Data Sensor DHT11</h1>
+
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <span>Suhu:</span>
+            <span className="font-medium">
+              {sensorData[sensorData.length - 1].temperature}°C
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Kelembaban:</span>
+            <span className="font-medium">
+              {sensorData[sensorData.length - 1].humidity}%
+            </span>
+          </div>
+
+          <div className="text-sm text-gray-500 pt-2">
+            Update terakhir : {new Date().toLocaleTimeString()}
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span>Live Update</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-row-2">
+        {/* Grafik Suhu */}
+        <div className="mt-4" style={{ width: "100%", height: 300 }}>
+          <h2 className="text-lg font-semibold mb-4">Grafik Suhu</h2>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={sensorData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="time" />
+              <YAxis
+                domain={["auto", "auto"]} // Menyesuaikan rentang sumbu Y secara otomatis
+                tickFormatter={(value) => `${value}°C`} // Menambahkan format °C pada ticks
+                label={{
+                  angle: -90,
+                  position: "insideLeft",
+                }} // Label Y Axis
+              />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="temperature" stroke="#8884d8" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Grafik Kelembaban */}
+        <div className="mt-10" style={{ width: "100%", height: 300 }}>
+          <h2 className="text-lg font-semibold mb-4">Grafik Kelembaban</h2>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={sensorData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="time" />
+              <YAxis
+                domain={["auto", "auto"]} // Menyesuaikan rentang sumbu Y secara otomatis
+                tickFormatter={(value) => `${value}`} // Menambahkan format °C pada ticks
+                label={{
+                  angle: -90,
+                  position: "insideLeft",
+                }} // Label Y Axis
+              />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="humidity" stroke="#82ca9d" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 };
-export default RealTimeChart;
+
+export default LatestSensorData;
+

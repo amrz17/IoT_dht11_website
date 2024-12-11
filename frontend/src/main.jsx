@@ -1,10 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import RealTimeChart from "./Chart.jsx";
+import LatestSensorData from "./Chart";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <RealTimeChart />
+    <LatestSensorData />
   </StrictMode>,
 );
